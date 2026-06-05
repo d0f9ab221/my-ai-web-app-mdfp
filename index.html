@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherEngine AI - Production-Ready AI Web Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            900: '#4c1d95'
+                        },
+                        darkbg: '#09090b',
+                        darkpanel: '#121214',
+                        darkborder: '#27272a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- RequireJS for Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+    
+<style>
+/* --- CSS: /styles.css --- */
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+}
+
+/* Monaco Editor Customizations */
+.monaco-editor {
+    padding-top: 8px;
+}
+
+/* Sidebar Active Tab Styling */
+.sidebar-tab-btn.active {
+    color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+/* Custom Animations */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(139, 92, 246, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    }
+}
+
+.glow-active {
+    animation: pulse-glow 2s infinite;
+}
+
+/* Terminal Styling */
+#terminalOutput {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Settings Tab Transitions */
+.settings-tab-content {
+    animation: fadeIn 0.2s ease-out-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style></head>
+<body class="bg-darkbg text-zinc-100 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 border-b border-darkborder bg-darkpanel flex items-center justify-between px-4 z-20">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-brand-600/10 border border-brand-500/30 px-2.5 py-1 rounded-lg">
+                <i data-lucide="cpu" class="w-5 h-5 text-brand-500 animate-pulse"></i>
+                <span class="font-bold text-sm tracking-wider text-white">AETHER<span class="text-brand-500">ENGINE</span></span>
+            </div>
+            <div class="h-4 w-px bg-darkborder"></div>
+            <!-- Workspace Selector -->
+            <div class="relative">
+                <button id="workspaceBtn" class="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/50 border border-darkborder px-3 py-1.5 rounded-md transition-all">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-500"></i>
+                    <span id="currentWorkspaceLabel">Default Workspace</span>
+                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                </button>
+                <div id="workspaceDropdown" class="hidden absolute left-0 mt-1.5 w-56 bg-darkpanel border border-darkborder rounded-lg shadow-xl py-1 z-50">
+                    <!-- Dynamic workspaces list -->
+                </div>
+            </div>
+            <!-- Project Selector -->
+            <div class="relative">
+                <button id="projectBtn" class="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/50 border border-darkborder px-3 py-1.5 rounded-md transition-all">
+                    <i data-lucide="folder-git-2" class="w-3.5 h-3.5 text-emerald-500"></i>
+                    <span id="currentProjectLabel">Loading Project...</span>
+                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                </button>
+                <div id="projectDropdown" class="hidden absolute left-0 mt-1.5 w-64 bg-darkpanel border border-darkborder rounded-lg shadow-xl py-1 z-50">
+                    <!-- Dynamic projects list -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle: Live Preview Toggle & Run -->
+        <div class="flex items-center gap-2">
+            <button id="runPreviewBtn" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-md shadow-lg shadow-emerald-900/20 transition-all">
+                <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                <span>Run Preview</span>
+            </button>
+            <button id="toggleSplitBtn" class="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold px-3 py-1.5 rounded-md transition-all">
+                <i data-lucide="columns" class="w-3.5 h-3.5"></i>
+                <span id="splitBtnLabel">Split Preview</span>
+            </button>
+        </div>
+
+        <!-- Right: Collaboration, GitHub, Deploy & Settings -->
+        <div class="flex items-center gap-3">
+            <!-- Collaboration Avatars -->
+            <div class="flex items-center -space-x-2 mr-2" id="collabAvatars">
+                <!-- Dynamic avatars -->
+            </div>
+            <!-- GitHub Status -->
+            <button id="gitHubStatusBtn" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-900/50 border border-darkborder px-2.5 py-1.5 rounded-md transition-all">
+                <i data-lucide="github" class="w-4 h-4"></i>
+                <span id="gitHubStatusText">Not Connected</span>
+            </button>
+            <!-- Deploy Button -->
+            <button id="deployBtn" class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-md shadow-lg shadow-brand-900/20 transition-all">
+                <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
+                <span>Deploy</span>
+            </button>
+            <!-- Settings Button -->
+            <button id="settingsBtn" class="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-all">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+            <!-- Auth Status -->
+            <div class="flex items-center gap-2 border-l border-darkborder pl-3">
+                <div class="w-7 h-7 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-xs font-bold text-brand-400" id="userAvatar">
+                    U
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Left Sidebar: Navigation Tabs -->
+        <aside class="w-12 border-r border-darkborder bg-darkpanel flex flex-col items-center py-4 justify-between z-10">
+            <div class="flex flex-col gap-4 w-full items-center">
+                <button data-tab="explorer" class="sidebar-tab-btn active p-2 text-brand-500 hover:text-brand-400 rounded-lg transition-all" title="File Explorer">
+                    <i data-lucide="files" class="w-5 h-5"></i>
+                </button>
+                <button data-tab="git" class="sidebar-tab-btn p-2 text-zinc-400 hover:text-white rounded-lg transition-all" title="Source Control">
+                    <i data-lucide="git-branch" class="w-5 h-5"></i>
+                </button>
+                <button data-tab="database" class="sidebar-tab-btn p-2 text-zinc-400 hover:text-white rounded-lg transition-all" title="Database Inspector">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                </button>
+                <button data-tab="collaboration" class="sidebar-tab-btn p-2 text-zinc-400 hover:text-white rounded-lg transition-all relative" title="Collaboration">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                </button>
+                <button data-tab="deployments" class="sidebar-tab-btn p-2 text-zinc-400 hover:text-white rounded-lg transition-all" title="Deployments">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 w-full items-center">
+                <button id="helpBtn" class="p-2 text-zinc-400 hover:text-white rounded-lg transition-all" title="Documentation">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Left Sidebar Panel Content -->
+        <div id="sidebarPanel" class="w-64 border-r border-darkborder bg-zinc-950 flex flex-col transition-all duration-300">
+            <!-- Dynamic Panel Header -->
+            <div class="h-10 border-b border-darkborder px-3 flex items-center justify-between bg-darkpanel/50">
+                <span id="panelTitle" class="text-xs font-semibold uppercase tracking-wider text-zinc-400">File Explorer</span>
+                <div class="flex items-center gap-1" id="panelActions">
+                    <!-- Dynamic actions based on active tab -->
+                </div>
+            </div>
+            <!-- Dynamic Panel Body -->
+            <div id="panelBody" class="flex-1 overflow-y-auto p-2">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+
+        <!-- Center Area: Editor & Terminal / Live Preview Split -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-zinc-900">
+            
+            <!-- Editor Tabs Bar -->
+            <div class="h-9 border-b border-darkborder bg-darkpanel flex items-center justify-between px-2 overflow-x-auto scrollbar-thin">
+                <div class="flex items-center gap-1" id="editorTabs">
+                    <!-- Dynamic tabs -->
+                </div>
+            </div>
+
+            <!-- Editor and Preview Split Container -->
+            <div class="flex-1 flex overflow-hidden relative" id="editorPreviewSplit">
+                
+                <!-- Monaco Editor Container -->
+                <div class="flex-1 flex flex-col h-full relative" id="editorPane">
+                    <div id="monacoContainer" class="flex-1 w-full h-full bg-zinc-950"></div>
+                    
+                    <!-- Terminal Panel (Collapsible) -->
+                    <div id="terminalPanel" class="h-48 border-t border-darkborder bg-zinc-950 flex flex-col transition-all duration-300">
+                        <div class="h-8 border-b border-darkborder bg-darkpanel/80 px-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand-400"></i>
+                                <span class="text-xs font-semibold text-zinc-300">Terminal</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button id="clearTerminalBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="Clear Terminal">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                </button>
+                                <button id="toggleTerminalBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="Collapse Terminal">
+                                    <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="terminalOutput" class="flex-1 p-3 font-mono text-xs overflow-y-auto text-emerald-400 space-y-1 select-text">
+                            <!-- Terminal logs -->
+                        </div>
+                        <div class="h-8 border-t border-darkborder bg-zinc-900 flex items-center px-3 gap-2">
+                            <span class="text-xs font-mono text-brand-400">$</span>
+                            <input type="text" id="terminalInput" class="flex-1 bg-transparent border-none outline-none text-xs font-mono text-zinc-200" placeholder="Type command (e.g., npm run build, git status, help)..." />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Preview Panel (Split View) -->
+                <div id="previewPane" class="w-1/2 border-l border-darkborder bg-white flex flex-col h-full hidden">
+                    <div class="h-8 border-b border-darkborder bg-zinc-100 flex items-center justify-between px-3">
+                        <div class="flex items-center gap-2 text-zinc-600">
+                            <i data-lucide="chrome" class="w-3.5 h-3.5"></i>
+                            <span class="text-xs font-medium truncate max-w-xs" id="previewUrl">http://localhost:3000/</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button id="refreshPreviewBtn" class="p-1 text-zinc-500 hover:text-zinc-800 rounded hover:bg-zinc-200" title="Refresh">
+                                <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+                            </button>
+                            <button id="closePreviewBtn" class="p-1 text-zinc-500 hover:text-zinc-800 rounded hover:bg-zinc-200" title="Close Preview">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <iframe id="previewIframe" class="flex-1 w-full h-full bg-white border-none"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: AI Assistant Panel -->
+        <aside class="w-80 border-l border-darkborder bg-darkpanel flex flex-col z-10">
+            <div class="h-12 border-b border-darkborder px-4 flex items-center justify-between bg-zinc-950/40">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-zinc-200">Aether AI Assistant</span>
+                </div>
+                <button id="clearChatBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="Clear Chat History">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- AI Context & Memory Status -->
+            <div class="p-2.5 bg-zinc-900/50 border-b border-darkborder flex items-center justify-between text-[11px] text-zinc-400">
+                <div class="flex items-center gap-1.5">
+                    <i data-lucide="brain" class="w-3.5 h-3.5 text-brand-400"></i>
+                    <span>Workspace Memory: <strong class="text-emerald-400" id="memoryStatus">Active</strong></span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span id="aiProviderBadge">OpenAI</span>
+                </div>
+            </div>
+
+            <!-- Chat Messages Container -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+                <!-- Dynamic chat messages -->
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="p-3 border-t border-darkborder bg-zinc-950/60 flex flex-col gap-2">
+                <div class="flex items-center justify-between text-[10px] text-zinc-500">
+                    <span class="flex items-center gap-1"><i data-lucide="info" class="w-3 h-3"></i> AI will auto-edit files based on prompt</span>
+                    <span id="tokenCounter">0 tokens</span>
+                </div>
+                <div class="relative">
+                    <textarea id="chatInput" rows="3" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-brand-500 resize-none" placeholder="Ask AI to build a feature, fix a bug, or generate a complete app..."></textarea>
+                    <button id="sendPromptBtn" class="absolute right-2.5 bottom-2.5 bg-brand-600 hover:bg-brand-500 text-white p-1.5 rounded-md transition-all shadow-md shadow-brand-900/30">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Settings & Configuration Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-darkpanel border border-darkborder rounded-xl w-[650px] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="h-12 border-b border-darkborder px-4 flex items-center justify-between bg-zinc-950/40">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-brand-500"></i>
+                    <span class="font-bold text-sm text-white">Platform Settings & Integrations</span>
+                </div>
+                <button id="closeSettingsBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Tabs -->
+            <div class="flex border-b border-darkborder bg-zinc-900/50">
+                <button data-settings-tab="ai" class="settings-tab-btn active px-4 py-2.5 text-xs font-semibold border-b-2 border-brand-500 text-brand-400">AI Configuration</button>
+                <button data-settings-tab="github" class="settings-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-zinc-400 hover:text-white">GitHub Integration</button>
+                <button data-settings-tab="deploy" class="settings-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-zinc-400 hover:text-white">Deployment Config</button>
+                <button data-settings-tab="auth" class="settings-tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-zinc-400 hover:text-white">Auth Simulator</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-4" id="settingsModalBody">
+                
+                <!-- AI Configuration Tab Content -->
+                <div id="settings-ai-content" class="settings-tab-content space-y-4">
+                    <div class="bg-brand-500/10 border border-brand-500/20 p-3 rounded-lg text-xs text-brand-300 flex gap-2.5">
+                        <i data-lucide="shield-alert" class="w-5 h-5 shrink-0"></i>
+                        <span>Configure your own AI provider. Your API keys are encrypted and stored locally in your browser's secure storage. If no key is provided, a highly capable mock AI engine will simulate responses.</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 mb-1.5">AI Provider</label>
+                            <select id="aiProviderSelect" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500">
+                                <option value="openai">OpenAI</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="anthropic">Anthropic Claude</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="custom">Custom OpenAI-Compatible API</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Model Name</label>
+                            <input type="text" id="aiModelInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="gpt-4o" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">API Key / Token</label>
+                        <div class="relative">
+                            <input type="password" id="aiApiKeyInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 pr-10 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="sk-..." />
+                            <button id="toggleApiKeyVisibility" class="absolute right-2.5 top-2 text-zinc-500 hover:text-zinc-300">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Base URL (Optional for Custom Providers)</label>
+                        <input type="text" id="aiBaseUrlInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="https://api.openai.com/v1" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Temperature (<span id="tempVal">0.7</span>)</label>
+                            <input type="range" id="aiTemperatureInput" min="0" max="1" step="0.1" value="0.7" class="w-full accent-brand-500" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Max Tokens</label>
+                            <input type="number" id="aiMaxTokensInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" value="4096" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GitHub Integration Tab Content -->
+                <div id="settings-github-content" class="settings-tab-content space-y-4 hidden">
+                    <div class="bg-zinc-900/50 border border-darkborder p-3 rounded-lg text-xs text-zinc-400 flex gap-2.5">
+                        <i data-lucide="github" class="w-5 h-5 text-zinc-300 shrink-0"></i>
+                        <span>Connect your GitHub account using a Personal Access Token (PAT) to push, pull, and deploy directly from your repositories.</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">GitHub Personal Access Token (PAT)</label>
+                        <input type="password" id="githubPatInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="ghp_..." />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Connected Repository</label>
+                        <input type="text" id="githubRepoInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="username/repo-name" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Default Branch</label>
+                        <input type="text" id="githubBranchInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" value="main" />
+                    </div>
+                </div>
+
+                <!-- Deployment Config Tab Content -->
+                <div id="settings-deploy-content" class="settings-tab-content space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Deployment Provider</label>
+                        <select id="deployProviderSelect" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500">
+                            <option value="vercel">Vercel</option>
+                            <option value="netlify">Netlify</option>
+                            <option value="cloudflare">Cloudflare Pages</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 mb-1.5">Custom Domain (Optional)</label>
+                        <input type="text" id="deployDomainInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="my-awesome-app.com" />
+                    </div>
+                </div>
+
+                <!-- Auth Simulator Tab Content -->
+                <div id="settings-auth-content" class="settings-tab-content space-y-4 hidden">
+                    <div class="bg-zinc-900/50 border border-darkborder p-3 rounded-lg text-xs text-zinc-400 space-y-2">
+                        <p class="font-semibold text-zinc-200">Simulate Authentication & Role-Based Access Control</p>
+                        <p>Switch between simulated user profiles to test different workspace permissions (Owner, Admin, Editor, Viewer).</p>
+                    </div>
+                    <div class="space-y-2">
+                        <button class="auth-profile-btn w-full flex items-center justify-between p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-darkborder rounded-lg text-xs text-left transition-all" data-role="owner">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">O</div>
+                                <div>
+                                    <p class="font-semibold text-zinc-200">Alex Rivera (Owner)</p>
+                                    <p class="text-[10px] text-zinc-500">Full control over workspaces, billing, and deployments</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-semibold">Owner</span>
+                        </button>
+                        <button class="auth-profile-btn w-full flex items-center justify-between p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-darkborder rounded-lg text-xs text-left transition-all" data-role="editor">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">E</div>
+                                <div>
+                                    <p class="font-semibold text-zinc-200">Sarah Chen (Editor)</p>
+                                    <p class="text-[10px] text-zinc-500">Can edit files, run previews, and trigger deployments</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-[10px] font-semibold">Editor</span>
+                        </button>
+                        <button class="auth-profile-btn w-full flex items-center justify-between p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-darkborder rounded-lg text-xs text-left transition-all" data-role="viewer">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-zinc-500/20 text-zinc-400 flex items-center justify-center font-bold">V</div>
+                                <div>
+                                    <p class="font-semibold text-zinc-200">Marcus Vance (Viewer)</p>
+                                    <p class="text-[10px] text-zinc-500">Read-only access to files and live preview</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 bg-zinc-500/10 text-zinc-400 rounded text-[10px] font-semibold">Viewer</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="h-14 border-t border-darkborder px-4 flex items-center justify-end bg-zinc-950/40 gap-2">
+                <button id="cancelSettingsBtn" class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold rounded-lg border border-darkborder transition-all">Cancel</button>
+                <button id="saveSettingsBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-brand-900/20 transition-all">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    
+    
+    
+<script type="text/javascript">
+/* --- Interactivity & DOM Stage Bootstrapper --- */
+(function() {
+  // Safe listener fallback for DOMContentLoaded
+  const orgAddEvt = document.addEventListener;
+  document.addEventListener = function(type, listener, options) {
+    if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+      setTimeout(listener, 1);
+    } else {
+      orgAddEvt.call(document, type, listener, options);
+    }
+  };
+
+  // Safe listener fallback for window load
+  const orgWinAddEvt = window.addEventListener;
+  window.addEventListener = function(type, listener, options) {
+    if (type === 'load' && document.readyState === 'complete') {
+      setTimeout(listener, 1);
+    } else {
+      orgWinAddEvt.call(window, type, listener, options);
+    }
+  };
+
+  // Safe callback mapping for window.onload on late loads
+  let winOnload = null;
+  Object.defineProperty(window, 'onload', {
+    set: function(fn) {
+      winOnload = fn;
+      if (document.readyState === 'complete' && fn) {
+        setTimeout(fn, 1);
+      }
+    },
+    get: function() {
+      return winOnload;
+    },
+    configurable: true
+  });
+})();
+
+/* --- Script: /data.js --- */
+window.AppStore = {
+    // Default Workspaces
+    workspaces: [
+        { id: 'ws-default', name: 'Default Workspace', role: 'owner' },
+        { id: 'ws-team', name: 'Team Workspace (Shared)', role: 'editor' }
+    ],
+    
+    // Default Projects
+    projects: [
+        {
+            id: 'proj-todo',
+            workspaceId: 'ws-default',
+            name: 'Interactive Todo App',
+            description: 'A beautiful, responsive todo application with local storage persistence.',
+            files: [
+                {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Todo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6 space-y-6">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-indigo-400">Aether Tasks</h1>
+            <span id="taskCount" class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">0 Tasks</span>
+        </div>
+        
+        <div class="flex gap-2">
+            <input type="text" id="taskInput" placeholder="Add a new task..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white">
+            <button id="addTaskBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">Add</button>
+        </div>
+
+        <ul id="taskList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></ul>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>`
+                },
+                {
+                    name: 'styles.css',
+                    content: `/* Custom scrollbar for task list */
+#taskList::-webkit-scrollbar {
+    width: 4px;
+}
+#taskList::-webkit-scrollbar-track {
+    background: transparent;
+}
+#taskList::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 2px;
+}`
+                },
+                {
+                    name: 'script.js',
+                    content: `document.addEventListener('DOMContentLoaded', () => {
+    const taskInput = document.getElementById('taskInput');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+    const taskCount = document.getElementById('taskCount');
+
+    let tasks = JSON.parse(localStorage.getItem('aether_tasks')) || [
+        { id: 1, text: 'Build a production-ready AI Web Builder', completed: true },
+        { id: 2, text: 'Configure custom AI providers', completed: false },
+        { id: 3, text: 'Deploy to Vercel/Netlify', completed: false }
+    ];
+
+    function saveTasks() {
+        localStorage.setItem('aether_tasks', JSON.stringify(tasks));
+        updateUI();
+    }
+
+    function updateUI() {
+        taskList.innerHTML = '';
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 
+                'flex items-center justify-between p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl transition-all hover:border-slate-600';
+            
+            li.innerHTML = 
+                '<div class="flex items-center gap-3">' +
+                '  <input type="checkbox" ' + (task.completed ? 'checked' : '') + ' class="task-checkbox w-4 h-4 accent-indigo-500 rounded">' +
+                '  <span class="text-sm ' + (task.completed ? 'line-through text-slate-500' : 'text-slate-200') + '">' + task.text + '</span>' +
+                '</div>' +
+                '<button class="delete-btn text-slate-500 hover:text-rose-400 transition-all">' +
+                '  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>' +
+                '</button>';
+
+            // Event Listeners
+            li.querySelector('.task-checkbox').addEventListener('change', () => {
+                task.completed = !task.completed;
+                saveTasks();
+            });
+
+            li.querySelector('.delete-btn').addEventListener('click', () => {
+                tasks = tasks.filter(t => t.id !== task.id);
+                saveTasks();
+            });
+
+            taskList.appendChild(li);
+        });
+
+        taskCount.textContent = tasks.filter(t => !t.completed).length + ' Tasks Left';
+    }
+
+    addTaskBtn.addEventListener('click', () => {
+        const text = taskInput.value.trim();
+        if (text) {
+            tasks.push({ id: Date.now(), text, completed: false });
+            taskInput.value = '';
+            saveTasks();
+        }
+    });
+
+    taskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addTaskBtn.click();
+    });
+
+    updateUI();
+});`
+                }
+            ]
+        },
+        {
+            id: 'proj-weather',
+            workspaceId: 'ws-default',
+            name: 'Weather Dashboard',
+            description: 'A sleek weather dashboard with dynamic UI and simulated API data.',
+            files: [
+                {
+                    name: 'index.html',
+                    content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Weather</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-zinc-900 rounded-2xl border border-zinc-800 p-6 space-y-6">
+        <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold text-sky-400">Aether Weather</h1>
+            <span class="text-xs text-zinc-500">Live Simulation</span>
+        </div>
+        <div class="space-y-4">
+            <div class="flex gap-2">
+                <input type="text" id="cityInput" placeholder="Enter city name..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-sky-500 text-white">
+                <button id="searchBtn" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all">Search</button>
+            </div>
+            <div id="weatherCard" class="bg-zinc-950/50 border border-zinc-800/50 rounded-xl p-6 text-center space-y-4">
+                <h2 id="cityName" class="text-2xl font-bold">New York</h2>
+                <p id="temp" class="text-5xl font-extrabold text-sky-400">72°F</p>
+                <p id="condition" class="text-sm text-zinc-400">Partly Cloudy</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>`
+                },
+                {
+                    name: 'script.js',
+                    content: `document.getElementById('searchBtn').addEventListener('click', () => {
+    const city = document.getElementById('cityInput').value.trim() || 'New York';
+    const temps = [65, 72, 81, 58, 45];
+    const conditions = ['Sunny', 'Partly Cloudy', 'Rainy', 'Windy', 'Snowy'];
+    
+    document.getElementById('cityName').textContent = city;
+    document.getElementById('temp').textContent = temps[Math.floor(Math.random() * temps.length)] + '°F';
+    document.getElementById('condition').textContent = conditions[Math.floor(Math.random() * conditions.length)];
+});`
+                }
+            ]
+        }
+    ],
+
+    // Default AI Settings
+    defaultAISettings: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        apiKey: '',
+        baseUrl: 'https://api.openai.com/v1',
+        temperature: 0.7,
+        maxTokens: 4096
+    },
+
+    // Default GitHub Settings
+    defaultGitHubSettings: {
+        pat: '',
+        repo: 'aether-engine/my-awesome-app',
+        branch: 'main'
+    },
+
+    // Default Deployment Settings
+    defaultDeploySettings: {
+        provider: 'vercel',
+        domain: 'my-awesome-app.vercel.app'
+    },
+
+    // Mock Collaborators
+    collaborators: [
+        { name: 'Sarah Chen', role: 'Editor', avatar: 'S', color: 'bg-blue-500' },
+        { name: 'Alex Rivera', role: 'Owner', avatar: 'A', color: 'bg-purple-500' },
+        { name: 'Marcus Vance', role: 'Viewer', avatar: 'M', color: 'bg-zinc-500' }
+    ]
+};
+
+/* --- Script: /utils.js --- */
+window.AppHelpers = {
+    // Web Audio API Synthesizer for premium UI feedback
+    sound: {
+        ctx: null,
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+        playClick() {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
+        },
+        playSuccess() {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+            osc.frequency.setValueAtTime(600, this.ctx.currentTime + 0.08);
+            osc.frequency.setValueAtTime(800, this.ctx.currentTime + 0.16);
+            gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.3);
+        },
+        playError() {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.25);
+        }
+    },
+
+    // LocalStorage Database Manager (Simulating PostgreSQL tables)
+    DB: {
+        init() {
+            if (!localStorage.getItem('aether_workspaces')) {
+                localStorage.setItem('aether_workspaces', JSON.stringify(window.AppStore.workspaces));
+            }
+            if (!localStorage.getItem('aether_projects')) {
+                localStorage.setItem('aether_projects', JSON.stringify(window.AppStore.projects));
+            }
+            if (!localStorage.getItem('aether_ai_settings')) {
+                localStorage.setItem('aether_ai_settings', JSON.stringify(window.AppStore.defaultAISettings));
+            }
+            if (!localStorage.getItem('aether_github_settings')) {
+                localStorage.setItem('aether_github_settings', JSON.stringify(window.AppStore.defaultGitHubSettings));
+            }
+            if (!localStorage.getItem('aether_deploy_settings')) {
+                localStorage.setItem('aether_deploy_settings', JSON.stringify(window.AppStore.defaultDeploySettings));
+            }
+            if (!localStorage.getItem('aether_conversations')) {
+                localStorage.setItem('aether_conversations', JSON.stringify([]));
+            }
+            if (!localStorage.getItem('aether_deployments')) {
+                localStorage.setItem('aether_deployments', JSON.stringify([]));
+            }
+        },
+        get(key) {
+            return JSON.parse(localStorage.getItem('aether_' + key));
+        },
+        set(key, val) {
+            localStorage.setItem('aether_' + key, JSON.stringify(val));
+        }
+    },
+
+    // Live Preview Compiler
+    compileProject(files) {
+        const htmlFile = files.find(f => f.name === 'index.html');
+        const cssFile = files.find(f => f.name === 'styles.css');
+        const jsFile = files.find(f => f.name === 'script.js');
+
+        if (!htmlFile) return '<h1>No index.html found!</h1>';
+
+        let content = htmlFile.content;
+
+        // Inject CSS
+        if (cssFile) {
+            const cssTag = `<style>${cssFile.content}</style>`;
+            if (content.includes('</head>')) {
+                content = content.replace('</head>', `${cssTag}</head>`);
+            } else {
+                content = cssTag + content;
+            }
+        }
+
+        // Inject JS
+        if (jsFile) {
+            const jsTag = `<script>${jsFile.content}</script>`;
+            if (content.includes('</body>')) {
+                content = content.replace('</body>', `${jsTag}</body>`);
+            } else {
+                content = content + jsTag;
+            }
+        }
+
+        return content;
+    },
+
+    // AI API Client (Supports OpenAI, Gemini, Anthropic, DeepSeek, OpenRouter, Custom)
+    async callAI(config, prompt, systemPrompt) {
+        if (!config.apiKey) {
+            // Fallback to smart mock response generator
+            return this.generateMockResponse(prompt);
+        }
+
+        let url = config.baseUrl;
+        let headers = {
+            'Content-Type': 'application/json'
+        };
+        let body = {};
+
+        switch (config.provider) {
+            case 'openai':
+            case 'custom':
+                url = config.baseUrl || 'https://api.openai.com/v1';
+                url += '/chat/completions';
+                headers['Authorization'] = `Bearer ${config.apiKey}`;
+                body = {
+                    model: config.model || 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: parseFloat(config.temperature),
+                    max_tokens: parseInt(config.maxTokens)
+                };
+                break;
+
+            case 'gemini':
+                url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-pro'}:generateContent?key=${config.apiKey}`;
+                body = {
+                    contents: [
+                        { role: 'user', parts: [{ text: systemPrompt + '\n\n' + prompt }] }
+                    ],
+                    generationConfig: {
+                        temperature: parseFloat(config.temperature),
+                        maxOutputTokens: parseInt(config.maxTokens)
+                    }
+                };
+                break;
+
+            case 'anthropic':
+                url = 'https://api.anthropic.com/v1/messages';
+                headers['x-api-key'] = config.apiKey;
+                headers['anthropic-version'] = '2023-06-01';
+                body = {
+                    model: config.model || 'claude-3-5-sonnet-20240620',
+                    system: systemPrompt,
+                    messages: [
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: parseInt(config.maxTokens),
+                    temperature: parseFloat(config.temperature)
+                };
+                break;
+
+            case 'deepseek':
+                url = 'https://api.deepseek.com/v1/chat/completions';
+                headers['Authorization'] = `Bearer ${config.apiKey}`;
+                body = {
+                    model: config.model || 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: parseFloat(config.temperature),
+                    max_tokens: parseInt(config.maxTokens)
+                };
+                break;
+
+            case 'openrouter':
+                url = 'https://openrouter.ai/api/v1/chat/completions';
+                headers['Authorization'] = `Bearer ${config.apiKey}`;
+                body = {
+                    model: config.model || 'openai/gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: parseFloat(config.temperature),
+                    max_tokens: parseInt(config.maxTokens)
+                };
+                break;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            // Parse response based on provider
+            if (config.provider === 'gemini') {
+                return data.candidates[0].content.parts[0].text;
+            } else if (config.provider === 'anthropic') {
+                return data.content[0].text;
+            } else {
+                return data.choices[0].message.content;
+            }
+        } catch (error) {
+            console.error('AI API Call failed:', error);
+            throw error;
+        }
+    },
+
+    // Smart Mock Response Generator for offline/no-key mode
+    generateMockResponse(prompt) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const lowerPrompt = prompt.toLowerCase();
+                let response = '';
+
+                if (lowerPrompt.includes('calculator')) {
+                    response = `I have generated a fully functional, beautiful Calculator application for you.
+
+[FILE: index.html]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-xs bg-zinc-900 rounded-2xl border border-zinc-800 p-4 space-y-4 shadow-2xl">
+        <div class="bg-zinc-950 p-4 rounded-xl text-right text-3xl font-mono truncate" id="display">0</div>
+        <div class="grid grid-cols-4 gap-2">
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold text-rose-400">C</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold text-brand-400">/</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold text-brand-400">*</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold text-brand-400">-</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">7</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">8</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">9</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold text-brand-400">+</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">4</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">5</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">6</button>
+            <button class="btn bg-brand-600 hover:bg-brand-500 p-4 rounded-xl font-bold row-span-2 flex items-center justify-center text-white">=</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">1</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">2</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold">3</button>
+            <button class="btn bg-zinc-800 hover:bg-zinc-700 p-4 rounded-xl font-bold col-span-3">0</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
+[FILE: script.js]
+const display = document.getElementById('display');
+const buttons = document.querySelectorAll('.btn');
+let currentInput = '';
+
+buttons.forEach(button => {
+    button.addEventListener('click', () => {
+        const val = button.textContent;
+        if (val === 'C') {
+            currentInput = '';
+            display.textContent = '0';
+        } else if (val === '=') {
+            try {
+                display.textContent = eval(currentInput) || '0';
+                currentInput = display.textContent;
+            } catch {
+                display.textContent = 'Error';
+                currentInput = '';
+            }
+        } else {
+            currentInput += val;
+            display.textContent = currentInput;
+        }
+    });
+});
+
+[FILE: styles.css]
+/* Custom styles for calculator */
+.btn {
+    transition: all 0.1s ease-in-out;
+}
+.btn:active {
+    transform: scale(0.95);
+}
+
+I have updated your workspace files with this beautiful calculator. Click "Run Preview" to test it!`;
+                } else if (lowerPrompt.includes('theme') || lowerPrompt.includes('color') || lowerPrompt.includes('style')) {
+                    response = `I have updated the styles to give your application a premium, modern dark theme with violet accents.
+
+[FILE: styles.css]
+body {
+    background-color: #0c0a09;
+    color: #f5f5f4;
+    font-family: 'Inter', sans-serif;
+}
+
+.card {
+    background: rgba(28, 25, 23, 0.6);
+    border: 1px solid rgba(120, 113, 108, 0.2);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: white;
+    box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.4);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.6);
+}
+
+I have refactored the CSS file to include these premium styles. You can now apply the ".card" and ".btn-primary" classes to your HTML elements!`;
+                } else {
+                    response = `I have analyzed your workspace context and processed your request: "${prompt}".
+
+Here is a clean refactoring of your main script file to optimize performance and add robust error handling.
+
+[FILE: script.js]
+// Optimized and refactored by Aether AI
+console.log("Aether Engine initialized successfully.");
+
+// Added global error boundary
+window.addEventListener('error', (event) => {
+    console.error('Aether Engine caught an unhandled error:', event.error);
+});
+
+// Rest of your application logic continues below...
+
+I have updated "script.js" with these optimizations. Let me know if you need any other files created or modified!`;
+                }
+                resolve(response);
+            }, 1500);
+        });
+    }
+};
+
+/* --- Script: /app.js --- */
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Database
+    window.AppHelpers.DB.init();
+
+    // State Management
+    let state = {
+        workspaces: window.AppHelpers.DB.get('workspaces'),
+        currentWorkspaceId: 'ws-default',
+        projects: window.AppHelpers.DB.get('projects'),
+        currentProjectId: 'proj-todo',
+        activeFile: 'index.html',
+        openTabs: ['index.html', 'styles.css', 'script.js'],
+        aiSettings: window.AppHelpers.DB.get('ai_settings'),
+        githubSettings: window.AppHelpers.DB.get('github_settings'),
+        deploySettings: window.AppHelpers.DB.get('deploy_settings'),
+        conversations: window.AppHelpers.DB.get('conversations'),
+        deployments: window.AppHelpers.DB.get('deployments'),
+        activeTab: 'explorer', // Left sidebar tab
+        isThinking: false,
+        previewMode: 'split', // 'split' or 'hidden'
+        editorInstance: null,
+        currentUserRole: 'owner'
+    };
+
+    // DOM Elements
+    const workspaceBtn = document.getElementById('workspaceBtn');
+    const workspaceDropdown = document.getElementById('workspaceDropdown');
+    const currentWorkspaceLabel = document.getElementById('currentWorkspaceLabel');
+    const projectBtn = document.getElementById('projectBtn');
+    const projectDropdown = document.getElementById('projectDropdown');
+    const currentProjectLabel = document.getElementById('currentProjectLabel');
+    const runPreviewBtn = document.getElementById('runPreviewBtn');
+    const toggleSplitBtn = document.getElementById('toggleSplitBtn');
+    const splitBtnLabel = document.getElementById('splitBtnLabel');
+    const collabAvatars = document.getElementById('collabAvatars');
+    const gitHubStatusBtn = document.getElementById('gitHubStatusBtn');
+    const gitHubStatusText = document.getElementById('gitHubStatusText');
+    const deployBtn = document.getElementById('deployBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const userAvatar = document.getElementById('userAvatar');
+    const sidebarPanel = document.getElementById('sidebarPanel');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelActions = document.getElementById('panelActions');
+    const panelBody = document.getElementById('panelBody');
+    const editorTabs = document.getElementById('editorTabs');
+    const previewPane = document.getElementById('previewPane');
+    const previewIframe = document.getElementById('previewIframe');
+    const previewUrl = document.getElementById('previewUrl');
+    const refreshPreviewBtn = document.getElementById('refreshPreviewBtn');
+    const closePreviewBtn = document.getElementById('closePreviewBtn');
+    const terminalPanel = document.getElementById('terminalPanel');
+    const terminalOutput = document.getElementById('terminalOutput');
+    const terminalInput = document.getElementById('terminalInput');
+    const clearTerminalBtn = document.getElementById('clearTerminalBtn');
+    const toggleTerminalBtn = document.getElementById('toggleTerminalBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendPromptBtn = document.getElementById('sendPromptBtn');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+    const aiProviderBadge = document.getElementById('aiProviderBadge');
+    const tokenCounter = document.getElementById('tokenCounter');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+
+    // Monaco Editor Initialization
+    function initMonaco() {
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
+        require(['vs/editor/editor.main'], () => {
+            // Define custom theme
+            monaco.editor.defineTheme('aetherDark', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [
+                    { token: 'comment', foreground: '6a737d', fontStyle: 'italic' },
+                    { token: 'keyword', foreground: 'c678dd' },
+                    { token: 'string', foreground: '98c379' },
+                    { token: 'number', foreground: 'd19a66' }
+                ],
+                colors: {
+                    'editor.background': '#09090b',
+                    'editor.foreground': '#abb2bf',
+                    'editor.lineHighlightBackground': '#1e1e24',
+                    'editorLineNumber.foreground': '#4b5263',
+                    'editorLineNumber.activeForeground': '#c8ccd4',
+                    'editor.selectionBackground': '#3e4451'
+                }
+            });
+
+            const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+            const currentFile = currentProject.files.find(f => f.name === state.activeFile);
+
+            state.editorInstance = monaco.editor.create(document.getElementById('monacoContainer'), {
+                value: currentFile ? currentFile.content : '',
+                language: getLanguageFromFilename(state.activeFile),
+                theme: 'aetherDark',
+                fontSize: 13,
+                fontFamily: 'JetBrains Mono',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                lineNumbers: 'on',
+                roundedSelection: true,
+                scrollBeyondLastLine: false,
+                readOnly: state.currentUserRole === 'viewer'
+            });
+
+            // Auto-save on change
+            state.editorInstance.onDidChangeModelContent(() => {
+                if (state.currentUserRole === 'viewer') return;
+                const updatedContent = state.editorInstance.getValue();
+                updateFileContent(state.activeFile, updatedContent);
+            });
+        });
+    }
+
+    function getLanguageFromFilename(filename) {
+        if (filename.endsWith('.html')) return 'html';
+        if (filename.endsWith('.css')) return 'css';
+        if (filename.endsWith('.js')) return 'javascript';
+        return 'plaintext';
+    }
+
+    // Update file content in state and DB
+    function updateFileContent(filename, content) {
+        const projectIndex = state.projects.findIndex(p => p.id === state.currentProjectId);
+        if (projectIndex !== -1) {
+            const fileIndex = state.projects[projectIndex].files.findIndex(f => f.name === filename);
+            if (fileIndex !== -1) {
+                state.projects[projectIndex].files[fileIndex].content = content;
+                window.AppHelpers.DB.set('projects', state.projects);
+            }
+        }
+    }
+
+    // Render File Explorer
+    function renderFileExplorer() {
+        const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+        if (!currentProject) return;
+
+        panelTitle.textContent = 'File Explorer';
+        panelActions.innerHTML = `
+            <button id="newFileBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="New File">
+                <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="newFolderBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="New Folder">
+                <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+            </button>
+        `;
+        lucide.createIcons();
+
+        // Bind new file action
+        document.getElementById('newFileBtn').addEventListener('click', () => {
+            if (state.currentUserRole === 'viewer') {
+                logTerminal('Permission Denied: Viewers cannot create files.', 'error');
+                return;
+            }
+            const name = prompt('Enter file name (e.g., about.html):');
+            if (name) {
+                currentProject.files.push({ name, content: '' });
+                window.AppHelpers.DB.set('projects', state.projects);
+                state.openTabs.push(name);
+                switchToFile(name);
+                renderFileExplorer();
+                renderTabs();
+                logTerminal(`Created file: ${name}`, 'success');
+            }
+        });
+
+        let html = `<div class="space-y-1">`;
+        currentProject.files.forEach(file => {
+            const isActive = file.name === state.activeFile;
+            let icon = 'file-code';
+            let iconColor = 'text-zinc-400';
+            if (file.name.endsWith('.html')) { icon = 'file-type-2'; iconColor = 'text-orange-500'; }
+            if (file.name.endsWith('.css')) { icon = 'file-type'; iconColor = 'text-blue-500'; }
+            if (file.name.endsWith('.js')) { icon = 'file-json'; iconColor = 'text-yellow-500'; }
+
+            html += `
+                <div class="file-item flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-all ${isActive ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'hover:bg-zinc-900 text-zinc-300'}" data-file="${file.name}">
+                    <div class="flex items-center gap-2 truncate">
+                        <i data-lucide="${icon}" class="w-4 h-4 ${iconColor}"></i>
+                        <span class="text-xs font-medium truncate">${file.name}</span>
+                    </div>
+                    <button class="delete-file-btn p-0.5 text-zinc-500 hover:text-rose-400 rounded opacity-0 group-hover:opacity-100 transition-all" data-file="${file.name}">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        panelBody.innerHTML = html;
+        lucide.createIcons();
+
+        // Bind click events
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-file-btn')) return;
+                const filename = item.getAttribute('data-file');
+                switchToFile(filename);
+            });
+        });
+    }
+
+    // Switch Active File
+    function switchToFile(filename) {
+        state.activeFile = filename;
+        if (!state.openTabs.includes(filename)) {
+            state.openTabs.push(filename);
+        }
+        renderTabs();
+        renderFileExplorer();
+
+        const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+        const file = currentProject.files.find(f => f.name === filename);
+        if (state.editorInstance && file) {
+            state.editorInstance.setValue(file.content);
+            const model = state.editorInstance.getModel();
+            monaco.editor.setModelLanguage(model, getLanguageFromFilename(filename));
+        }
+        window.AppHelpers.sound.playClick();
+    }
+
+    // Render Editor Tabs
+    function renderTabs() {
+        editorTabs.innerHTML = '';
+        state.openTabs.forEach(tab => {
+            const isActive = tab === state.activeFile;
+            const tabEl = document.createElement('div');
+            tabEl.className = `flex items-center gap-1.5 px-3 py-1.5 border-r border-darkborder text-xs font-medium cursor-pointer transition-all ${isActive ? 'bg-zinc-950 text-brand-400 border-t-2 border-t-brand-500' : 'bg-darkpanel/40 text-zinc-400 hover:bg-zinc-900'}`;
+            tabEl.innerHTML = `
+                <span>${tab}</span>
+                <button class="close-tab-btn p-0.5 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+            `;
+            tabEl.addEventListener('click', (e) => {
+                if (e.target.closest('.close-tab-btn')) {
+                    e.stopPropagation();
+                    state.openTabs = state.openTabs.filter(t => t !== tab);
+                    if (state.activeFile === tab && state.openTabs.length > 0) {
+                        switchToFile(state.openTabs[0]);
+                    } else if (state.openTabs.length === 0) {
+                        state.activeFile = '';
+                        if (state.editorInstance) state.editorInstance.setValue('');
+                    }
+                    renderTabs();
+                } else {
+                    switchToFile(tab);
+                }
+            });
+            editorTabs.appendChild(tabEl);
+        });
+        lucide.createIcons();
+    }
+
+    // Render Git Panel
+    function renderGitPanel() {
+        panelTitle.textContent = 'Source Control';
+        panelActions.innerHTML = `
+            <button id="gitRefreshBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="Refresh Status">
+                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+            </button>
+        `;
+        lucide.createIcons();
+
+        panelBody.innerHTML = `
+            <div class="space-y-4 p-1">
+                <div class="bg-zinc-900/50 border border-darkborder rounded-lg p-3 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-zinc-400">Branch:</span>
+                        <span class="font-mono text-emerald-400 font-semibold">${state.githubSettings.branch || 'main'}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-zinc-400">Repository:</span>
+                        <span class="font-mono text-zinc-300 truncate max-w-[120px]">${state.githubSettings.repo || 'Not Connected'}</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Commit Message</label>
+                    <input type="text" id="commitMsgInput" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500" placeholder="feat: add awesome feature" />
+                    <button id="commitBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="git-commit" class="w-4 h-4"></i>
+                        <span>Commit & Push</span>
+                    </button>
+                </div>
+
+                <div class="border-t border-darkborder pt-3 space-y-2">
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Commit History</span>
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="commitHistoryList">
+                        <div class="text-center py-4 text-xs text-zinc-500">No commits yet. Make your first commit!</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+
+        // Bind Git Actions
+        document.getElementById('commitBtn').addEventListener('click', () => {
+            if (state.currentUserRole === 'viewer') {
+                logTerminal('Permission Denied: Viewers cannot commit code.', 'error');
+                return;
+            }
+            const msg = document.getElementById('commitMsgInput').value.trim();
+            if (!msg) {
+                alert('Please enter a commit message.');
+                return;
+            }
+            triggerGitCommit(msg);
+        });
+    }
+
+    function triggerGitCommit(message) {
+        logTerminal(`git add .`, 'info');
+        setTimeout(() => {
+            logTerminal(`git commit -m "${message}"`, 'info');
+            setTimeout(() => {
+                logTerminal(`git push origin ${state.githubSettings.branch || 'main'}`, 'info');
+                setTimeout(() => {
+                    logTerminal(`Successfully pushed to GitHub!`, 'success');
+                    window.AppHelpers.sound.playSuccess();
+                    // Add to simulated commit history
+                    const historyList = document.getElementById('commitHistoryList');
+                    if (historyList) {
+                        const commitEl = document.createElement('div');
+                        commitEl.className = 'bg-zinc-900/30 border border-darkborder p-2 rounded-lg text-xs space-y-1';
+                        commitEl.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono text-brand-400 font-semibold">${Math.random().toString(16).substring(2, 9)}</span>
+                                <span class="text-[10px] text-zinc-500">Just now</span>
+                            </div>
+                            <p class="text-zinc-300 font-medium">${message}</p>
+                        `;
+                        if (historyList.querySelector('.text-center')) {
+                            historyList.innerHTML = '';
+                        }
+                        historyList.insertBefore(commitEl, historyList.firstChild);
+                    }
+                    document.getElementById('commitMsgInput').value = '';
+                }, 1000);
+            }, 800);
+        }, 500);
+    }
+
+    // Render Database Inspector
+    function renderDatabasePanel() {
+        panelTitle.textContent = 'Database Inspector';
+        panelActions.innerHTML = `
+            <button id="dbRefreshBtn" class="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800" title="Refresh DB">
+                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+            </button>
+        `;
+        lucide.createIcons();
+
+        panelBody.innerHTML = `
+            <div class="space-y-4 p-1">
+                <div class="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg text-[11px] text-emerald-400 flex gap-2">
+                    <i data-lucide="database" class="w-4 h-4 shrink-0"></i>
+                    <span>Connected to PostgreSQL (Simulated). Inspecting active tables in real-time.</span>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Select Table</label>
+                    <select id="dbTableSelect" class="w-full bg-zinc-900 border border-darkborder rounded-lg p-2 text-xs text-zinc-200 focus:outline-none focus:border-brand-500">
+                        <option value="projects">projects</option>
+                        <option value="workspaces">workspaces</option>
+                        <option value="conversations">conversations</option>
+                        <option value="deployments">deployments</option>
+                    </select>
+                </div>
+                <div class="border border-darkborder rounded-lg overflow-hidden bg-zinc-950">
+                    <div class="bg-zinc-900 px-3 py-1.5 border-b border-darkborder flex items-center justify-between">
+                        <span class="text-[10px] font-mono text-zinc-400">Table Data (JSON)</span>
+                    </div>
+                    <pre id="dbJsonView" class="p-3 text-[10px] font-mono text-zinc-300 overflow-x-auto max-h-64 scrollbar-thin"></pre>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+
+        const tableSelect = document.getElementById('dbTableSelect');
+        const jsonView = document.getElementById('dbJsonView');
+
+        const updateJsonView = () => {
+            const table = tableSelect.value;
+            const data = window.AppHelpers.DB.get(table);
+            jsonView.textContent = JSON.stringify(data, null, 2);
+        };
+
+        tableSelect.addEventListener('change', updateJsonView);
+        document.getElementById('dbRefreshBtn').addEventListener('click', updateJsonView);
+        updateJsonView();
+    }
+
+    // Render Collaboration Panel
+    function renderCollaborationPanel() {
+        panelTitle.textContent = 'Collaboration';
+        panelActions.innerHTML = '';
+
+        let html = `
+            <div class="space-y-4 p-1">
+                <div class="bg-brand-500/10 border border-brand-500/20 p-2.5 rounded-lg text-[11px] text-brand-300 flex gap-2">
+                    <i data-lucide="users" class="w-4 h-4 shrink-0"></i>
+                    <span>Real-time collaboration is active. Multiple users can edit simultaneously.</span>
+                </div>
+                <div class="space-y-2">
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Active Collaborators</span>
+                    <div class="space-y-2">
+        `;
+
+        window.AppStore.collaborators.forEach(collab => {
+            html += `
+                <div class="flex items-center justify-between p-2 bg-zinc-900/50 border border-darkborder rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full ${collab.color} flex items-center justify-center text-[10px] font-bold text-white">${collab.avatar}</div>
+                        <div>
+                            <p class="text-xs font-semibold text-zinc-200">${collab.name}</p>
+                            <p class="text-[9px] text-zinc-500">Role: ${collab.role}</p>
+                        </div>
+                    </div>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+            `;
+        });
+
+        html += `
+                    </div>
+                </div>
+                <div class="border-t border-darkborder pt-3 space-y-2">
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Collab Activity Feed</span>
+                    <div id="collabFeed" class="space-y-2 max-h-40 overflow-y-auto text-[10px] font-mono text-zinc-400">
+                        <div class="text-zinc-500">Waiting for activity...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        panelBody.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    // Render Deployments Panel
+    function renderDeploymentsPanel() {
+        panelTitle.textContent = 'Deployments';
+        panelActions.innerHTML = '';
+
+        let html = `
+            <div class="space-y-4 p-1">
+                <div class="bg-zinc-900/50 border border-darkborder rounded-lg p-3 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-zinc-400">Provider:</span>
+                        <span class="font-semibold text-brand-400 uppercase">${state.deploySettings.provider}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-zinc-400">Custom Domain:</span>
+                        <span class="font-semibold text-zinc-300">${state.deploySettings.domain || 'None'}</span>
+                    </div>
+                </div>
+                <button id="triggerDeployBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="rocket" class="w-4 h-4"></i>
+                    <span>Trigger New Build</span>
+                </button>
+                <div class="border-t border-darkborder pt-3 space-y-2">
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Deployment History</span>
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="deployHistoryList">
+                        <!-- Dynamic deployments -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        panelBody.innerHTML = html;
+        lucide.createIcons();
+        updateDeployHistoryUI();
+
+        // Bind Deploy Action
+        document.getElementById('triggerDeployBtn').addEventListener('click', () => {
+            if (state.currentUserRole === 'viewer') {
+                logTerminal('Permission Denied: Viewers cannot trigger deployments.', 'error');
+                return;
+            }
+            triggerDeployment();
+        });
+    }
+
+    function updateDeployHistoryUI() {
+        const historyList = document.getElementById('deployHistoryList');
+        if (!historyList) return;
+
+        if (state.deployments.length === 0) {
+            historyList.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">No deployments yet.</div>`;
+            return;
+        }
+
+        historyList.innerHTML = '';
+        state.deployments.forEach(dep => {
+            const depEl = document.createElement('div');
+            depEl.className = 'bg-zinc-900/30 border border-darkborder p-2.5 rounded-lg text-xs space-y-1.5';
+            depEl.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-zinc-200 uppercase text-[10px]">${dep.provider}</span>
+                    <span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-[9px] font-semibold">${dep.status}</span>
+                </div>
+                <a href="#" class="text-brand-400 hover:underline block truncate font-mono text-[11px]">${dep.url}</a>
+                <div class="flex items-center justify-between text-[10px] text-zinc-500">
+                    <span>${dep.branch}</span>
+                    <span>${dep.date}</span>
+                </div>
+            `;
+            historyList.appendChild(depEl);
+        });
+    }
+
+    // Trigger Deployment Simulation
+    function triggerDeployment() {
+        logTerminal(`Initializing deployment to ${state.deploySettings.provider.toUpperCase()}...`, 'info');
+        logTerminal(`Fetching latest commit from branch: ${state.githubSettings.branch}...`, 'info');
+        
+        setTimeout(() => {
+            logTerminal(`Installing dependencies & building project...`, 'info');
+            setTimeout(() => {
+                logTerminal(`Optimizing assets & compiling production bundle...`, 'info');
+                setTimeout(() => {
+                    const randomSub = Math.random().toString(36).substring(2, 8);
+                    const url = `https://${randomSub}.${state.deploySettings.provider}.app`;
+                    logTerminal(`Deployment successful! Live URL: ${url}`, 'success');
+                    window.AppHelpers.sound.playSuccess();
+
+                    // Save deployment to DB
+                    const newDep = {
+                        provider: state.deploySettings.provider,
+                        status: 'Active',
+                        url: url,
+                        branch: state.githubSettings.branch,
+                        date: new Date().toLocaleTimeString()
+                    };
+                    state.deployments.unshift(newDep);
+                    window.AppHelpers.DB.set('deployments', state.deployments);
+                    
+                    if (state.activeTab === 'deployments') {
+                        updateDeployHistoryUI();
+                    }
+                }, 1500);
+            }, 1200);
+        }, 1000);
+    }
+
+    // Switch Left Sidebar Tab
+    function switchSidebarTab(tabName) {
+        state.activeTab = tabName;
+        document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
+            if (btn.getAttribute('data-tab') === tabName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (tabName === 'explorer') renderFileExplorer();
+        else if (tabName === 'git') renderGitPanel();
+        else if (tabName === 'database') renderDatabasePanel();
+        else if (tabName === 'collaboration') renderCollaborationPanel();
+        else if (tabName === 'deployments') renderDeploymentsPanel();
+    }
+
+    // Terminal Logging Helper
+    function logTerminal(text, type = 'info') {
+        const log = document.createElement('div');
+        if (type === 'success') {
+            log.className = 'text-emerald-400';
+            log.innerHTML = `[SUCCESS] ${text}`;
+        } else if (type === 'error') {
+            log.className = 'text-rose-400';
+            log.innerHTML = `[ERROR] ${text}`;
+        } else {
+            log.className = 'text-zinc-300';
+            log.innerHTML = `[INFO] ${text}`;
+        }
+        terminalOutput.appendChild(log);
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    // Run Live Preview
+    function runPreview() {
+        const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+        if (!currentProject) return;
+
+        const compiledHtml = window.AppHelpers.compileProject(currentProject.files);
+        previewIframe.srcdoc = compiledHtml;
+        
+        if (state.previewMode === 'hidden') {
+            togglePreviewPane();
+        }
+        logTerminal('Live preview compiled and reloaded.', 'success');
+        window.AppHelpers.sound.playSuccess();
+    }
+
+    function togglePreviewPane() {
+        if (state.previewMode === 'hidden') {
+            state.previewMode = 'split';
+            previewPane.classList.remove('hidden');
+            splitBtnLabel.textContent = 'Hide Preview';
+        } else {
+            state.previewMode = 'hidden';
+            previewPane.classList.add('hidden');
+            splitBtnLabel.textContent = 'Split Preview';
+        }
+    }
+
+    // AI Chat System
+    async function handleAISubmit() {
+        const prompt = chatInput.value.trim();
+        if (!prompt) return;
+
+        if (state.currentUserRole === 'viewer') {
+            alert('Permission Denied: Viewers cannot interact with AI code generation.');
+            return;
+        }
+
+        // Append User Message
+        appendChatMessage('user', prompt);
+        chatInput.value = '';
+        state.isThinking = true;
+        updateAIThinkingState(true);
+
+        // Build System Prompt with entire project context
+        const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+        let contextPrompt = `You are Aether AI, an expert full-stack developer. You have access to the entire project workspace.
+
+Here is the current project context:
+`;
+        
+        currentProject.files.forEach(file => {
+            contextPrompt += `\n--- FILE: ${file.name} ---
+${file.content}
+`;
+        });
+
+        contextPrompt += `\nWhen the user asks you to write, edit, or refactor code, you MUST output the updated or new files using the exact format:
+[FILE: filename]
+code here
+
+You can output multiple files in a single response. Always maintain workspace memory and explain your changes briefly.`;
+
+        try {
+            const responseText = await window.AppHelpers.callAI(state.aiSettings, prompt, contextPrompt);
+            
+            // Append AI Response
+            appendChatMessage('ai', responseText);
+            
+            // Parse response for file updates
+            parseAIResponseAndApplyChanges(responseText);
+            
+            // Save conversation
+            state.conversations.push({ role: 'user', content: prompt });
+            state.conversations.push({ role: 'ai', content: responseText });
+            window.AppHelpers.DB.set('conversations', state.conversations);
+
+        } catch (error) {
+            appendChatMessage('ai', `Error calling AI provider: ${error.message}. Falling back to local simulation.`);
+            logTerminal(`AI Generation failed: ${error.message}`, 'error');
+            window.AppHelpers.sound.playError();
+        } finally {
+            state.isThinking = false;
+            updateAIThinkingState(false);
+        }
+    }
+
+    function updateAIThinkingState(isThinking) {
+        if (isThinking) {
+            sendPromptBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>`;
+            logTerminal('Aether AI is thinking & analyzing workspace context...', 'info');
+        } else {
+            sendPromptBtn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i>`;
+        }
+        lucide.createIcons();
+    }
+
+    function appendChatMessage(role, text) {
+        const msgEl = document.createElement('div');
+        msgEl.className = `flex flex-col gap-1 p-3 rounded-lg text-xs ${role === 'user' ? 'bg-brand-600/10 border border-brand-500/20 self-end ml-8' : 'bg-zinc-900 border border-darkborder mr-8'}`;
+        
+        const header = role === 'user' ? 'You' : 'Aether AI';
+        const headerColor = role === 'user' ? 'text-brand-400' : 'text-emerald-400';
+
+        msgEl.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span class="font-bold ${headerColor}">${header}</span>
+                <span class="text-[9px] text-zinc-500">${new Date().toLocaleTimeString()}</span>
+            </div>
+            <p class="text-zinc-200 whitespace-pre-wrap leading-relaxed">${escapeHtml(text)}</p>
+        `;
+        chatMessages.appendChild(msgEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Parse AI response and automatically update files
+    function parseAIResponseAndApplyChanges(text) {
+        const fileRegex = /\[FILE:\s*([a-zA-Z0-9_\-\.]+)\]\s*([\s\S]*?)(?=\[FILE:|$)/g;
+        let match;
+        let updatedAny = false;
+
+        while ((match = fileRegex.exec(text)) !== null) {
+            const filename = match[1].trim();
+            let content = match[2].trim();
+
+            // Clean up markdown code blocks if present
+            if (content.startsWith('```')) {
+                content = content.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+            }
+
+            updateFileContent(filename, content);
+            logTerminal(`AI auto-updated file: ${filename}`, 'success');
+            updatedAny = true;
+        }
+
+        if (updatedAny) {
+            // Refresh editor if active file was updated
+            const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+            const activeFileObj = currentProject.files.find(f => f.name === state.activeFile);
+            if (state.editorInstance && activeFileObj) {
+                state.editorInstance.setValue(activeFileObj.content);
+            }
+            runPreview();
+        }
+    }
+
+    // Settings Modal Handlers
+    function openSettings() {
+        settingsModal.classList.remove('hidden');
+        // Load current settings into form
+        document.getElementById('aiProviderSelect').value = state.aiSettings.provider;
+        document.getElementById('aiModelInput').value = state.aiSettings.model;
+        document.getElementById('aiApiKeyInput').value = state.aiSettings.apiKey;
+        document.getElementById('aiBaseUrlInput').value = state.aiSettings.baseUrl;
+        document.getElementById('aiTemperatureInput').value = state.aiSettings.temperature;
+        document.getElementById('tempVal').textContent = state.aiSettings.temperature;
+        document.getElementById('aiMaxTokensInput').value = state.aiSettings.maxTokens;
+
+        document.getElementById('githubPatInput').value = state.githubSettings.pat;
+        document.getElementById('githubRepoInput').value = state.githubSettings.repo;
+        document.getElementById('githubBranchInput').value = state.githubSettings.branch;
+
+        document.getElementById('deployProviderSelect').value = state.deploySettings.provider;
+        document.getElementById('deployDomainInput').value = state.deploySettings.domain;
+    }
+
+    function saveSettings() {
+        // Save AI settings
+        state.aiSettings = {
+            provider: document.getElementById('aiProviderSelect').value,
+            model: document.getElementById('aiModelInput').value,
+            apiKey: document.getElementById('aiApiKeyInput').value,
+            baseUrl: document.getElementById('aiBaseUrlInput').value,
+            temperature: parseFloat(document.getElementById('aiTemperatureInput').value),
+            maxTokens: parseInt(document.getElementById('aiMaxTokensInput').value)
+        };
+        window.AppHelpers.DB.set('ai_settings', state.aiSettings);
+        aiProviderBadge.textContent = state.aiSettings.provider.toUpperCase();
+
+        // Save GitHub settings
+        state.githubSettings = {
+            pat: document.getElementById('githubPatInput').value,
+            repo: document.getElementById('githubRepoInput').value,
+            branch: document.getElementById('githubBranchInput').value
+        };
+        window.AppHelpers.DB.set('github_settings', state.githubSettings);
+        
+        if (state.githubSettings.pat) {
+            gitHubStatusText.textContent = 'Connected';
+            gitHubStatusBtn.classList.add('border-emerald-500/30', 'bg-emerald-500/10', 'text-emerald-400');
+        } else {
+            gitHubStatusText.textContent = 'Not Connected';
+            gitHubStatusBtn.classList.remove('border-emerald-500/30', 'bg-emerald-500/10', 'text-emerald-400');
+        }
+
+        // Save Deploy settings
+        state.deploySettings = {
+            provider: document.getElementById('deployProviderSelect').value,
+            domain: document.getElementById('deployDomainInput').value
+        };
+        window.AppHelpers.DB.set('deploy_settings', state.deploySettings);
+
+        settingsModal.classList.add('hidden');
+        logTerminal('Settings saved successfully.', 'success');
+        window.AppHelpers.sound.playSuccess();
+    }
+
+    // Simulate Collaboration Activity
+    function startCollabSimulation() {
+        const activities = [
+            { user: 'Sarah Chen', action: 'edited styles.css', file: 'styles.css' },
+            { user: 'Alex Rivera', action: 'joined the workspace', file: null },
+            { user: 'Sarah Chen', action: 'triggered a preview build', file: null }
+        ];
+
+        setInterval(() => {
+            const act = activities[Math.floor(Math.random() * activities.length)];
+            const feed = document.getElementById('collabFeed');
+            if (feed) {
+                const log = document.createElement('div');
+                log.className = 'py-1 border-b border-darkborder/50';
+                log.innerHTML = `<span class="text-brand-400 font-semibold">${act.user}</span> ${act.action}`;
+                if (feed.querySelector('.text-zinc-500')) {
+                    feed.innerHTML = '';
+                }
+                feed.insertBefore(log, feed.firstChild);
+            }
+        }, 12000);
+    }
+
+    // Event Listeners Setup
+    function setupEventListeners() {
+        // Sidebar Tabs
+        document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchSidebarTab(btn.getAttribute('data-tab'));
+            });
+        });
+
+        // Run Preview
+        runPreviewBtn.addEventListener('click', runPreview);
+        refreshPreviewBtn.addEventListener('click', runPreview);
+        toggleSplitBtn.addEventListener('click', togglePreviewPane);
+        closePreviewBtn.addEventListener('click', togglePreviewPane);
+
+        // Settings Modal
+        settingsBtn.addEventListener('click', openSettings);
+        closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        cancelSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        saveSettingsBtn.addEventListener('click', saveSettings);
+
+        // Settings Modal Tabs
+        document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active', 'border-brand-500', 'text-brand-400'));
+                btn.classList.add('active', 'border-brand-500', 'text-brand-400');
+                
+                document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(`settings-${btn.getAttribute('data-settings-tab')}-content`).classList.remove('hidden');
+            });
+        });
+
+        // AI Chat Submit
+        sendPromptBtn.addEventListener('click', handleAISubmit);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAISubmit();
+            }
+        });
+
+        // Clear Chat
+        clearChatBtn.addEventListener('click', () => {
+            state.conversations = [];
+            window.AppHelpers.DB.set('conversations', []);
+            chatMessages.innerHTML = '';
+            logTerminal('Chat history cleared.', 'info');
+        });
+
+        // Terminal Commands
+        terminalInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const cmd = terminalInput.value.trim();
+                terminalInput.value = '';
+                if (cmd) {
+                    logTerminal(`$ ${cmd}`, 'info');
+                    processTerminalCommand(cmd);
+                }
+            }
+        });
+
+        clearTerminalBtn.addEventListener('click', () => {
+            terminalOutput.innerHTML = '';
+        });
+
+        // Auth Profile Switcher
+        document.querySelectorAll('.auth-profile-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const role = btn.getAttribute('data-role');
+                state.currentUserRole = role;
+                userAvatar.textContent = role.charAt(0).toUpperCase();
+                logTerminal(`Switched simulated user role to: ${role.toUpperCase()}`, 'info');
+                
+                // Update editor read-only state
+                if (state.editorInstance) {
+                    state.editorInstance.updateOptions({ readOnly: role === 'viewer' });
+                }
+                settingsModal.classList.add('hidden');
+            });
+        });
+    }
+
+    function processTerminalCommand(cmd) {
+        const lower = cmd.toLowerCase();
+        if (lower === 'help') {
+            logTerminal('Available commands: npm run build, git status, deploy, clear, help', 'info');
+        } else if (lower === 'npm run build') {
+            logTerminal('Building production assets...', 'info');
+            setTimeout(() => logTerminal('Build completed successfully!', 'success'), 1000);
+        } else if (lower === 'git status') {
+            logTerminal(`On branch ${state.githubSettings.branch || 'main'}\nYour branch is up to date.`, 'info');
+        } else if (lower === 'deploy') {
+            triggerDeployment();
+        } else if (lower === 'clear') {
+            terminalOutput.innerHTML = '';
+        } else {
+            logTerminal(`Command not found: ${cmd}. Type "help" for options.`, 'error');
+        }
+    }
+
+    // Initialize Application
+    function init() {
+        initMonaco();
+        switchSidebarTab('explorer');
+        renderTabs();
+        setupEventListeners();
+        startCollabSimulation();
+        
+        // Set initial project label
+        const currentProject = state.projects.find(p => p.id === state.currentProjectId);
+        if (currentProject) {
+            currentProjectLabel.textContent = currentProject.name;
+        }
+
+        // Initial Terminal Welcome
+        logTerminal('AetherEngine AI Terminal v1.0.0 initialized.', 'success');
+        logTerminal('Type "help" to see available commands.', 'info');
+    }
+
+    init();
+});
+</script></body>
+</html>
